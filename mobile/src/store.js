@@ -33,6 +33,7 @@ networkInterface.use([{
 
 export const client = new ApolloClient({
   networkInterface,
+  dataIdFromObject: object => object._id
 });
 
 const middlewares = [client.middleware(), thunk, createLogger()];

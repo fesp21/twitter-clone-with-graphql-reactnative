@@ -6,6 +6,10 @@ import {
 } from 'react-navigation';
 import { connect } from 'react-redux';
 import { FontAwesome } from '@expo/vector-icons';
+import { withApollo } from 'react-apollo';
+import styled from 'styled-components/native';
+import Touchable from '@appandflow/touchable';
+import { connectActionSheet } from '@expo/react-native-action-sheet';
 
 import HomeScreen from './screens/HomeScreen';
 import ExploreScreen from './screens/ExploreScreen';
@@ -14,8 +18,68 @@ import ProfileScreen from './screens/ProfileScreen';
 import AuthenticationScreen from './screens/AuthenticationScreen';
 
 import { colors } from './utils/constants';
+import { logout } from './actions/user';
+import Loading from './components/Loading';
 
 const TAB_ICON_SIZE = 20;
+const AVATAR_SIZE = 30;
+const AVATAR_RADIUS = AVATAR_SIZE / 2;
+
+const Avatar = styled.Image`
+  height: ${AVATAR_SIZE};
+  width: ${AVATAR_SIZE};
+  borderRadius: ${AVATAR_RADIUS};
+`;
+
+const ButtonLeft = styled(Touchable).attrs({
+  feedback: 'opacity',
+  hitSlop: { top: 20, bottom: 20, right: 20, left: 20 },
+})`
+  marginLeft: 15;
+  justifyContent: center;
+  alignItems: center;
+`;
+
+class AvatarCp extends React.Component {
+  _onOpenActionSheet = () => {
+    const options = ['Logout', 'Cancel'];
+    const destructiveButtonIndex = 0;
+    const cancelButtonIndex = 1;
+    this.props.showActionSheetWithOptions(
+      {
+        options,
+        cancelButtonIndex,
+        destructiveButtonIndex,
+      },
+      buttonIndex => {
+        if (buttonIndex === 0) {
+          this.props.client.resetStore();
+          return this.props.logout();
+        }
+      },
+    );
+  };
+  render() {
+    if (!this.props.info) {
+      return (
+        <ButtonLeft disabled>
+          <Loading size="small" />
+        </ButtonLeft>
+      );
+    }
+    return (
+      <ButtonLeft onPress={this._onOpenActionSheet}>
+        <Avatar source={{ uri: this.props.info.avatar }} />
+      </ButtonLeft>
+    );
+  }
+}
+
+const AvatarState = withApollo(
+  connect(state => ({ info: state.user.info }), { logout })(
+    connectActionSheet(AvatarCp),
+  ),
+);
 
 const Tabs = TabNavigator(
   {
@@ -74,6 +138,9 @@ const AppMainNav = StackNavigator(
   {
     Home: {
       screen: Tabs,
+      navigationOptions: () => ({
+        headerLeft: <AvatarState />,
+      }),
     },
   },
   {
